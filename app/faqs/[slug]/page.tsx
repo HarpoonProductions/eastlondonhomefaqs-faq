@@ -568,16 +568,20 @@ export default function FaqPage({ params }: FaqPageProps) {
         }}
       />
 
-      {/* Header Section - Matching Homepage exactly */}
+  {/* Header Section - Logo Version */}
       <div className="pt-16 pb-8 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto text-center" style={{ maxWidth: '1600px' }}>
           <Link href="/" className="inline-block">
-            <h1 className="text-4xl font-bold text-[#071939] mb-2">
-              East London Home FAQs
-            </h1>
+            <Image
+              src="/eastlondonhomefaqs.png"
+              alt="East London Home FAQs"
+              width={400}
+              height={120}
+              className="mx-auto mb-6"
+            />
           </Link>
           <p className="text-slate-600 text-lg max-w-2xl mx-auto mb-8">
-            Your trusted guide to East London property
+            Questions and answers about buying, renting and living in East London
           </p>
           
           {/* Search Box */}
