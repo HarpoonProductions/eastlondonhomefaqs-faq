@@ -1,207 +1,162 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { getFAQs } from '@/lib/sanity'
 import Link from 'next/link'
 
 interface FAQ {
   _id: string
   question: string
+  answer: string
+  category: string
   slug: { current: string }
-  summary?: string
-  category?: string
-  _createdAt: string
+  tags?: string[]
+  priority: number
 }
 
-export default function HomePage() {
+export default function Home() {
   const [faqs, setFaqs] = useState<FAQ[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filteredFAQs, setFilteredFAQs] = useState<FAQ[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [loading, setLoading] = useState(true)
+
+  const categories = [
+    'buying', 'renting', 'areas', 'transport', 'schools', 
+    'legal', 'costs', 'moving', 'investment', 'lifestyle', 'safety'
+  ]
 
   useEffect(() => {
-    setFaqs([
-      {
-        _id: '1',
-        question: 'How do I get started with this FAQ system?',
-        slug: { current: 'how-to-get-started' },
-        summary: 'Learn the basics of getting started with our enhanced FAQ template system.',
-        category: 'Getting Started',
-        _createdAt: '2025-01-01'
-      },
-      {
-        _id: '2', 
-        question: 'What features are included in this template?',
-        slug: { current: 'what-features-included' },
-        summary: 'Discover all the powerful features including search, theming, and content management.',
-        category: 'Features',
-        _createdAt: '2025-01-02'
-      },
-      {
-        _id: '3',
-        question: 'How do I customize the design and themes?',
-        slug: { current: 'customize-design' },
-        summary: 'Learn how to customize themes, colors, layout, and branding for your site.',
-        category: 'Customization',
-        _createdAt: '2025-01-03'
+    async function loadFAQs() {
+      try {
+        const data = await getFAQs()
+        setFaqs(data)
+      } catch (error) {
+        console.error('Error loading FAQs:', error)
+      } finally {
+        setLoading(false)
       }
-    ])
+    }
+    loadFAQs()
   }, [])
 
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      const filtered = faqs.filter(faq =>
-        faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        faq.summary?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-      setFilteredFAQs(filtered)
-    } else {
-      setFilteredFAQs(faqs)
-    }
-  }, [searchQuery, faqs])
+  const filteredFAQs = faqs.filter(faq => {
+    const matchesSearch = faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         faq.answer.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = !selectedCategory || faq.category === selectedCategory
+    return matchesSearch && matchesCategory
+  })
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #f5f3ff 0%, #ffffff 50%, #ede9fe 100%)',
-      padding: '20px'
-    }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <h1 style={{
-          fontSize: '3rem',
-          fontWeight: 'bold',
-          color: '#1e293b',
-          textAlign: 'center',
-          marginBottom: '1rem'
-        }}>
-          Enhanced FAQ Site
-        </h1>
-        <p style={{
-          fontSize: '1.25rem',
-          color: '#64748b',
-          textAlign: 'center',
-          marginBottom: '2rem'
-        }}>
-          Professional FAQ system with search and content management
-        </p>
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-blue-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-[#071939] mb-2">
+              East London Home FAQs
+            </h1>
+            <p className="text-xl text-gray-600">
+              Your trusted guide to East London property
+            </p>
+          </div>
+        </div>
+      </header>
 
-        <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search questions..."
-            style={{
-              width: '100%',
-              maxWidth: '600px',
-              padding: '1rem',
-              fontSize: '1.125rem',
-              border: '1px solid #cbd5e1',
-              borderRadius: '12px',
-              backgroundColor: 'white',
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-            }}
-          />
+      {/* Search Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+            Find answers to your East London housing questions
+          </h2>
+          <div className="max-w-md mx-auto">
+            <input
+              type="text"
+              placeholder="Search housing questions..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#071939] focus:border-transparent"
+            />
+          </div>
         </div>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '1.5rem',
-          marginBottom: '3rem'
-        }}>
-          {filteredFAQs.map((faq) => (
-            <Link
-              key={faq._id}
-              href={`/faqs/${faq.slug.current}`}
-              style={{
-                display: 'block',
-                backgroundColor: 'white',
-                borderRadius: '16px',
-                padding: '1.5rem',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                textDecoration: 'none',
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                border: '1px solid #e2e8f0'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)'
-                e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-              }}
+        {/* Category Filter */}
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
+          <button
+            onClick={() => setSelectedCategory('')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              !selectedCategory 
+                ? 'bg-[#071939] text-white' 
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            All Categories
+          </button>
+          {categories.map(category => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors capitalize ${
+                selectedCategory === category 
+                  ? 'bg-[#071939] text-white' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: '12px'
-              }}>
-                <span style={{
-                  backgroundColor: '#ede9fe',
-                  color: '#5b21b6',
-                  padding: '4px 12px',
-                  borderRadius: '20px',
-                  fontSize: '0.75rem',
-                  fontWeight: '500'
-                }}>
-                  {faq.category || 'General'}
-                </span>
-                <span style={{ color: '#9ca3af', fontSize: '20px' }}>→</span>
-              </div>
-              
-              <h3 style={{
-                fontSize: '1.125rem',
-                fontWeight: '600',
-                color: '#1e293b',
-                marginBottom: '8px',
-                lineHeight: '1.4'
-              }}>
-                {faq.question}
-              </h3>
-              
-              {faq.summary && (
-                <p style={{
-                  color: '#64748b',
-                  fontSize: '0.875rem',
-                  lineHeight: '1.5',
-                  margin: 0
-                }}>
-                  {faq.summary}
-                </p>
-              )}
-            </Link>
+              {category}
+            </button>
           ))}
         </div>
 
-        <div style={{
-          background: 'linear-gradient(90deg, #ede9fe 0%, #e0e7ff 100%)',
-          borderRadius: '16px',
-          padding: '2rem',
-          textAlign: 'center',
-          border: '1px solid #ddd6fe'
-        }}>
-          <h3 style={{
-            fontWeight: '600',
-            color: '#581c87',
-            marginBottom: '1rem'
-          }}>
-            🚀 Enhanced Template Features
-          </h3>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-            gap: '1rem',
-            fontSize: '0.875rem',
-            color: '#6b21a8'
-          }}>
-            <div>✅ Search System</div>
-            <div>✅ Modern Design</div>
-            <div>✅ Sanity Ready</div>
-            <div>✅ Responsive</div>
+        {/* FAQ Grid */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#071939] mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading FAQs...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredFAQs.map((faq) => (
+              <Link
+                key={faq._id}
+                href={`/faqs/${faq.slug.current}`}
+                className="block bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <span className="inline-block px-3 py-1 bg-blue-100 text-[#071939] text-xs font-semibold rounded-full capitalize">
+                    {faq.category}
+                  </span>
+                  {faq.priority <= 3 && (
+                    <span className="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+                  )}
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 line-clamp-2">
+                  {faq.question}
+                </h3>
+                <p className="text-gray-600 text-sm line-clamp-3">
+                  {faq.answer}
+                </p>
+                <div className="mt-4 text-[#071939] text-sm font-medium">
+                  Read more →
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {filteredFAQs.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <p className="text-gray-600">No FAQs found matching your search.</p>
+          </div>
+        )}
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-50 border-t border-gray-200 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center text-gray-600">
+            <p>© 2024 East London Home FAQs. Part of the Upsum Network.</p>
           </div>
         </div>
-      </div>
-    </div>
+      </footer>
+    </main>
   )
 }
