@@ -47,47 +47,39 @@ export default function Home() {
   })
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-white">
+    <main style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)' }}>
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-blue-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-[#071939] mb-2">
-              East London Home FAQs
-            </h1>
-            <p className="text-xl text-gray-600">
-              Your trusted guide to East London property
-            </p>
-          </div>
+      <header className="header">
+        <div className="container">
+          <h1 style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+            East London Home FAQs
+          </h1>
+          <p style={{ fontSize: '1.25rem', opacity: 0.9 }}>
+            Your trusted guide to East London property
+          </p>
         </div>
       </header>
 
       {/* Search Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+      <section className="container" style={{ paddingTop: '3rem', paddingBottom: '2rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <h2 style={{ fontSize: '1.75rem', fontWeight: '600', color: '#1f2937', marginBottom: '1rem' }}>
             Find answers to your East London housing questions
           </h2>
-          <div className="max-w-md mx-auto">
-            <input
-              type="text"
-              placeholder="Search housing questions..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#071939] focus:border-transparent"
-            />
-          </div>
+          <input
+            type="text"
+            placeholder="Search housing questions..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-box"
+          />
         </div>
 
         {/* Category Filter */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8">
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem', marginBottom: '2rem' }}>
           <button
             onClick={() => setSelectedCategory('')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              !selectedCategory 
-                ? 'bg-[#071939] text-white' 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`btn ${!selectedCategory ? 'active' : 'inactive'}`}
           >
             All Categories
           </button>
@@ -95,11 +87,8 @@ export default function Home() {
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors capitalize ${
-                selectedCategory === category 
-                  ? 'bg-[#071939] text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`btn ${selectedCategory === category ? 'active' : 'inactive'}`}
+              style={{ textTransform: 'capitalize' }}
             >
               {category}
             </button>
@@ -108,33 +97,47 @@ export default function Home() {
 
         {/* FAQ Grid */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#071939] mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading FAQs...</p>
+          <div style={{ textAlign: 'center', padding: '3rem 0' }}>
+            <div style={{ 
+              width: '2rem', 
+              height: '2rem', 
+              border: '3px solid #f3f4f6', 
+              borderTop: '3px solid #071939',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto'
+            }}></div>
+            <p style={{ marginTop: '1rem', color: '#6b7280' }}>Loading FAQs...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="faq-grid">
             {filteredFAQs.map((faq) => (
               <Link
                 key={faq._id}
                 href={`/faqs/${faq.slug.current}`}
-                className="block bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6 border border-gray-200"
+                className="faq-card"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <span className="inline-block px-3 py-1 bg-blue-100 text-[#071939] text-xs font-semibold rounded-full capitalize">
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <span className="category-tag">
                     {faq.category}
                   </span>
                   {faq.priority <= 3 && (
-                    <span className="inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+                    <span style={{ 
+                      width: '8px', 
+                      height: '8px', 
+                      backgroundColor: '#ef4444', 
+                      borderRadius: '50%',
+                      display: 'inline-block'
+                    }}></span>
                   )}
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-3 line-clamp-2">
+                <h3 style={{ fontSize: '1.125rem', fontWeight: '600', color: '#1f2937', marginBottom: '0.75rem', lineHeight: '1.4' }}>
                   {faq.question}
                 </h3>
-                <p className="text-gray-600 text-sm line-clamp-3">
-                  {faq.answer}
+                <p style={{ color: '#6b7280', fontSize: '0.875rem', lineHeight: '1.5', marginBottom: '1rem' }}>
+                  {faq.answer.length > 150 ? faq.answer.substring(0, 150) + '...' : faq.answer}
                 </p>
-                <div className="mt-4 text-[#071939] text-sm font-medium">
+                <div style={{ color: '#071939', fontSize: '0.875rem', fontWeight: '500' }}>
                   Read more →
                 </div>
               </Link>
@@ -143,20 +146,25 @@ export default function Home() {
         )}
 
         {filteredFAQs.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <p className="text-gray-600">No FAQs found matching your search.</p>
+          <div style={{ textAlign: 'center', padding: '3rem 0' }}>
+            <p style={{ color: '#6b7280' }}>No FAQs found matching your search.</p>
           </div>
         )}
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-50 border-t border-gray-200 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center text-gray-600">
-            <p>© 2024 East London Home FAQs. Part of the Upsum Network.</p>
-          </div>
+      <footer style={{ background: '#f9fafb', borderTop: '1px solid #e5e7eb', marginTop: '4rem' }}>
+        <div className="container" style={{ padding: '2rem 1rem', textAlign: 'center' }}>
+          <p style={{ color: '#6b7280' }}>© 2024 East London Home FAQs. Part of the Upsum Network.</p>
         </div>
       </footer>
+
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </main>
   )
 }
