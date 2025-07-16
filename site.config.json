@@ -1,8 +1,24 @@
 {
-  "project": "test-site",
-  "name": "Test site for FAQs",
-  "description": "just a test",
-  "theme": "purple",
-  "setupDate": "2025-07-14T15:44:57.688Z",
-  "network": "upsum"
+  "siteName": "East London Home FAQs",
+  "siteDescription": "Your complete guide to buying, renting, and living in East London",
+  "siteUrl": "https://eastlondonhomefaqs.com",
+  "theme": "blue",
+  "primaryColor": "#071939",
+  "categories": [
+    "buying",
+    "renting", 
+    "areas",
+    "transport",
+    "schools",
+    "legal",
+    "costs",
+    "moving",
+    "investment",
+    "lifestyle",
+    "safety"
+  ],
+  "headerTitle": "East London Home FAQs",
+  "headerSubtitle": "Your trusted guide to East London property",
+  "searchPlaceholder": "Search housing questions...",
+  "footerText": "© 2024 East London Home FAQs. Part of the Upsum Network."
 }
