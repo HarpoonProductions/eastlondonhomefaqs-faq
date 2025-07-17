@@ -1,7 +1,7 @@
 {
-  "name": "test-site-faq",
+  "name": "east-london-home-faqs",
   "version": "1.0.0",
-  "description": "just a test",
+  "description": "East London property FAQ site",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -25,7 +25,7 @@
     "next-sanity": "^9.12.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
     "sanity-plugin-asset-source-unsplash": "^1.1.4"
   },
   "devDependencies": {
