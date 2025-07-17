@@ -1,10 +1,9 @@
 'use client'
-import { getImageUrl } from '@/lib/sanity'
-import { client } from '@/lib/sanity'
+
+import { client, getImageUrl } from '@/lib/sanity'
 import { groq } from 'next-sanity'
 import Image from 'next/image'
 import Link from 'next/link'
-import { urlFor } from '@/lib/sanity'
 import { useState, useEffect, useMemo } from 'react'
 
 // Type definitions
@@ -41,6 +40,59 @@ interface SearchBoxProps {
   onSuggestQuestion: (question?: string) => void;
   theme?: 'blue' | 'orange';
 }
+
+// Skeleton Components
+const CategorySkeleton = () => (
+  <div className="flex flex-wrap gap-2 justify-center">
+    {/* All Categories skeleton */}
+    <div className="h-8 w-24 bg-gray-200 rounded-full animate-pulse"></div>
+    {/* Category buttons skeleton */}
+    {Array.from({ length: 8 }).map((_, i) => (
+      <div key={i} className="h-8 w-16 bg-gray-200 rounded-full animate-pulse"></div>
+    ))}
+  </div>
+)
+
+const FAQCardSkeleton = () => (
+  <article className="bg-white rounded-3xl shadow-lg overflow-hidden">
+    {/* Image skeleton */}
+    <div className="relative h-64 md:h-72 bg-gray-200 animate-pulse">
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+      <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-end">
+        {/* Badge skeleton */}
+        <div className="mb-3">
+          <div className="h-6 w-24 bg-white/20 rounded-full"></div>
+        </div>
+        {/* Title skeleton */}
+        <div className="space-y-2">
+          <div className="h-6 bg-white/20 rounded w-3/4"></div>
+          <div className="h-6 bg-white/20 rounded w-1/2"></div>
+        </div>
+      </div>
+    </div>
+
+    {/* Content skeleton */}
+    <div className="p-6 md:p-8">
+      {/* Summary skeleton */}
+      <div className="space-y-2 mb-6">
+        <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+        <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+        <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+      </div>
+
+      {/* Read more skeleton */}
+      <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+    </div>
+  </article>
+)
+
+const FAQGridSkeleton = () => (
+  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+    {Array.from({ length: 6 }).map((_, i) => (
+      <FAQCardSkeleton key={i} />
+    ))}
+  </div>
+)
 
 // Search Component - Blue themed for East London
 const SearchBox = ({ faqs, onSuggestQuestion, theme = 'blue' }: SearchBoxProps) => {
@@ -480,6 +532,7 @@ export default function HomePage() {
   const [filteredFaqs, setFilteredFaqs] = useState<FAQ[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [prefillQuestion, setPrefillQuestion] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -497,7 +550,8 @@ export default function HomePage() {
             color
           },
           image {
-            asset -> {
+            asset->{
+              _id,
               url
             },
             alt
@@ -505,8 +559,8 @@ export default function HomePage() {
           publishedAt
         }`;
 
-        // Fetch Categories
-        const categoryQuery = groq`*[_type == "category"] | order(orderIndex asc, title asc) {
+        // Fetch Categories - Fixed query
+        const categoryQuery = groq`*[_type == "category"] | order(coalesce(orderIndex, 999) asc, title asc) {
           _id,
           title,
           slug,
@@ -519,10 +573,15 @@ export default function HomePage() {
           client.fetch(categoryQuery)
         ]);
 
+        console.log('FAQs loaded:', faqResult.length);
+        console.log('Categories loaded:', categoryResult.length);
+
         setFaqs(faqResult);
         setCategories(categoryResult);
+        setLoading(false);
       } catch (error) {
         console.error('❌ Fetch error:', error);
+        setLoading(false);
       }
     };
 
@@ -565,7 +624,7 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-blue-50 via-white to-slate-50">
-      {/* Website and Organization Structured Data */}
+      {/* Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -576,79 +635,14 @@ export default function HomePage() {
             "url": "https://eastlondonhomefaqs.com",
             "name": "East London Home FAQs",
             "description": "Questions and answers about buying, renting and living in East London",
-            "inLanguage": "en-US",
-            "publisher": {
-              "@type": "Organization",
-              "@id": "https://eastlondonhomefaqs.com/#organization",
-              "name": "Harpoon Productions Ltd",
-              "alternateName": "East London Home FAQs",
-              "logo": {
-                "@type": "ImageObject",
-                "url": "https://eastlondonhomefaqs.com/eastlondonhomefaqs.png"
-              }
-            },
-            "potentialAction": {
-              "@type": "SearchAction",
-              "target": "https://eastlondonhomefaqs.com/?q={search_term_string}",
-              "query-input": "required name=search_term_string"
-            }
+            "inLanguage": "en-US"
           })
         }}
       />
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            "@id": "https://eastlondonhomefaqs.com/#organization",
-            "name": "Harpoon Productions Ltd",
-            "alternateName": "East London Home FAQs",
-            "url": "https://eastlondonhomefaqs.com",
-            "logo": {
-              "@type": "ImageObject",
-              "url": "https://eastlondonhomefaqs.com/eastlondonhomefaqs.png"
-            },
-            "description": "Questions and answers about buying, renting and living in East London",
-            "foundingDate": "2025",
-            "sameAs": []
-          })
-        }}
-      />
-
-      {/* FAQPage Schema for the collection */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "FAQPage",
-            "@id": "https://eastlondonhomefaqs.com/#faqpage",
-            "url": "https://eastlondonhomefaqs.com",
-            "name": "East London Home FAQs - Property Questions & Answers",
-            "description": "Find answers to frequently asked questions about buying, renting, and living in East London",
-            "inLanguage": "en-US",
-            "isPartOf": {
-              "@type": "WebSite",
-              "@id": "https://eastlondonhomefaqs.com/#website"
-            },
-            "mainEntity": faqs.slice(0, 5).map((faq) => ({
-              "@type": "Question",
-              "name": faq.question,
-              "acceptedAnswer": {
-                "@type": "Answer",
-                "text": faq.summaryForAI || "Detailed answer available on the page.",
-                "url": `https://eastlondonhomefaqs.com/faqs/${faq.slug.current}`
-              }
-            }))
-          })
-        }}
-      />
-
-      {/* Main Content - Flex grow to push footer down */}
+      {/* Main Content */}
       <div className="flex-grow">
-        {/* Header Section with PNG logo */}
+        {/* Header Section */}
         <div className="pt-16 pb-12 px-4 sm:px-6 lg:px-8">
           <div className="mx-auto text-center" style={{ maxWidth: '1600px' }}>
             <Link href="/" className="inline-block">
@@ -697,124 +691,132 @@ export default function HomePage() {
 
         {/* Category Filter */}
         <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8" style={{ maxWidth: '1600px' }}>
-          <div className="flex flex-wrap gap-2 justify-center">
-            {/* All Categories Button */}
-            <button
-              onClick={() => setSelectedCategory('all')}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                selectedCategory === 'all'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              All Categories
-            </button>
-            
-            {/* Dynamic Category Buttons */}
-            {categories.map((category) => (
+          {loading ? (
+            <CategorySkeleton />
+          ) : (
+            <div className="flex flex-wrap gap-2 justify-center">
+              {/* All Categories Button */}
               <button
-                key={category._id}
-                onClick={() => setSelectedCategory(category.slug.current)}
+                onClick={() => setSelectedCategory('all')}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  selectedCategory === category.slug.current
-                    ? `${getCategoryColor(category.color)} text-white`
+                  selectedCategory === 'all'
+                    ? 'bg-blue-500 text-white'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
-                {category.title}
+                All Categories
               </button>
-            ))}
-          </div>
+              
+              {/* Dynamic Category Buttons */}
+              {categories.map((category) => (
+                <button
+                  key={category._id}
+                  onClick={() => setSelectedCategory(category.slug.current)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    selectedCategory === category.slug.current
+                      ? `${getCategoryColor(category.color)} text-white`
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {category.title}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Articles Grid */}
         <div className="mx-auto px-4 sm:px-6 lg:px-8 pb-16" style={{ maxWidth: '1600px' }}>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-            {filteredFaqs.map((faq, index) => {
-const imageUrl = getImageUrl(faq.image, 500, 300)
+          {loading ? (
+            <FAQGridSkeleton />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+              {filteredFaqs.map((faq) => {
+                const imageUrl = getImageUrl(faq.image, 500, 300)
 
-              return (
-                <article
-                  key={faq._id}
-                  className="group relative overflow-hidden rounded-3xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2"
-                >
-                  {/* Clickable Image Container with Overlay */}
-                  <Link
-                    href={`/faqs/${faq.slug.current}`}
-                    className="block relative overflow-hidden group"
+                return (
+                  <article
+                    key={faq._id}
+                    className="group relative overflow-hidden rounded-3xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2"
                   >
-                    <div className="relative h-64 md:h-72 overflow-hidden">
-                      <Image
-                        src={imageUrl}
-                        alt={faq.image?.alt || faq.question}
-                        fill
-                        className="object-cover transition-all duration-700 group-hover:scale-110 group-hover:brightness-75"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      />
-                      
-                      {/* Dark gradient overlay for text readability */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                      
-                      {/* Text overlay */}
-                      <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-end">
-                        {/* Category Badge */}
-                        <div className="mb-3">
-                          <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 backdrop-blur-sm rounded-full text-white text-xs font-medium">
-                            <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                            {faq.category?.title || 'Property Question'}
-                          </span>
-                        </div>
-                        
-                        {/* Question Title */}
-                        <h2 className="text-xl md:text-2xl font-bold text-white leading-tight group-hover:text-blue-200 transition-colors duration-300">
-                          {faq.question}
-                        </h2>
-                      </div>
-                      
-                      {/* Hover indicator */}
-                      <div className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
-                        <svg className="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </div>
-                    </div>
-                  </Link>
-
-                  {/* Content Section */}
-                  <div className="p-6 md:p-8">
-                    {/* Summary */}
-                    {faq.summaryForAI && (
-                      <p className="text-slate-600 leading-relaxed line-clamp-3 mb-6">
-                        {faq.summaryForAI}
-                      </p>
-                    )}
-
-                    {/* Read More Link */}
+                    {/* Clickable Image Container with Overlay */}
                     <Link
                       href={`/faqs/${faq.slug.current}`}
-                      className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-sm group/link transition-colors duration-200"
+                      className="block relative overflow-hidden group"
                     >
-                      Read full answer
-                      <svg 
-                        className="w-4 h-4 transition-transform duration-200 group-hover/link:translate-x-1" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                      </svg>
+                      <div className="relative h-64 md:h-72 overflow-hidden">
+                        <Image
+                          src={imageUrl}
+                          alt={faq.image?.alt || faq.question}
+                          fill
+                          className="object-cover transition-all duration-700 group-hover:scale-110 group-hover:brightness-75"
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        />
+                        
+                        {/* Dark gradient overlay for text readability */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                        
+                        {/* Text overlay */}
+                        <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-end">
+                          {/* Category Badge */}
+                          <div className="mb-3">
+                            <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 backdrop-blur-sm rounded-full text-white text-xs font-medium">
+                              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                              {faq.category?.title || 'Property Question'}
+                            </span>
+                          </div>
+                          
+                          {/* Question Title */}
+                          <h2 className="text-xl md:text-2xl font-bold text-white leading-tight group-hover:text-blue-200 transition-colors duration-300">
+                            {faq.question}
+                          </h2>
+                        </div>
+                        
+                        {/* Hover indicator */}
+                        <div className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
+                          <svg className="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </div>
+                      </div>
                     </Link>
-                  </div>
 
-                  {/* Subtle border effect */}
-                  <div className="absolute inset-0 rounded-3xl ring-1 ring-slate-200/50 group-hover:ring-blue-300/50 transition-colors duration-300 pointer-events-none" />
-                </article>
-              )
-            })}
-          </div>
+                    {/* Content Section */}
+                    <div className="p-6 md:p-8">
+                      {/* Summary */}
+                      {faq.summaryForAI && (
+                        <p className="text-slate-600 leading-relaxed line-clamp-3 mb-6">
+                          {faq.summaryForAI}
+                        </p>
+                      )}
+
+                      {/* Read More Link */}
+                      <Link
+                        href={`/faqs/${faq.slug.current}`}
+                        className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-sm group/link transition-colors duration-200"
+                      >
+                        Read full answer
+                        <svg 
+                          className="w-4 h-4 transition-transform duration-200 group-hover/link:translate-x-1" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                      </Link>
+                    </div>
+
+                    {/* Subtle border effect */}
+                    <div className="absolute inset-0 rounded-3xl ring-1 ring-slate-200/50 group-hover:ring-blue-300/50 transition-colors duration-300 pointer-events-none" />
+                  </article>
+                )
+              })}
+            </div>
+          )}
 
           {/* Empty state */}
-          {filteredFaqs.length === 0 && (
+          {!loading && filteredFaqs.length === 0 && (
             <div className="text-center py-16">
               <div className="w-24 h-24 mx-auto mb-6 bg-blue-100 rounded-full flex items-center justify-center">
                 <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
