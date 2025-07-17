@@ -1,5 +1,5 @@
 'use client'
-
+import { getImageUrl } from '@/lib/sanity'
 import { client } from '@/lib/sanity'
 import { groq } from 'next-sanity'
 import Image from 'next/image'
@@ -731,8 +731,6 @@ export default function HomePage() {
         <div className="mx-auto px-4 sm:px-6 lg:px-8 pb-16" style={{ maxWidth: '1600px' }}>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
             {filteredFaqs.map((faq, index) => {
-           import { getImageUrl } from '@/lib/sanity'
-
 const imageUrl = getImageUrl(faq.image, 500, 300)
 
               return (
