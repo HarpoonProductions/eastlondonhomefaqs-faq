@@ -95,9 +95,14 @@ const FAQGridSkeleton = () => (
 )
 
 // Search Component - Blue themed for East London
-const SearchBox = ({ faqs, onSuggestQuestion, theme = 'blue' }: SearchBoxProps) => {
-  const [query, setQuery] = useState('');
+const SearchBox = ({ faqs, onSuggestQuestion, theme = 'blue', initialQuery = '' }: SearchBoxProps & { initialQuery?: string }) => {
+  const [query, setQuery] = useState(initialQuery);
   const [isOpen, setIsOpen] = useState(false);
+
+  // Update query when initialQuery changes
+  useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
 
   const themeColors = {
     blue: {
@@ -533,6 +538,24 @@ export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [prefillQuestion, setPrefillQuestion] = useState('');
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Handle URL parameters for category filtering and search
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const categoryParam = urlParams.get('category');
+      const searchParam = urlParams.get('search');
+      
+      if (categoryParam) {
+        setSelectedCategory(categoryParam);
+      }
+      
+      if (searchParam) {
+        setSearchQuery(searchParam);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -588,16 +611,29 @@ export default function HomePage() {
     fetchData();
   }, []);
 
-  // Filter FAQs when category or faqs change
+  // Filter FAQs when category, faqs, or search changes
   useEffect(() => {
-    if (selectedCategory === 'all') {
-      setFilteredFaqs(faqs);
-    } else {
-      setFilteredFaqs(faqs.filter(faq => 
+    let filtered = faqs;
+
+    // Apply category filter
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(faq => 
         faq.category?.slug?.current === selectedCategory
-      ));
+      );
     }
-  }, [faqs, selectedCategory]);
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const searchTerm = searchQuery.toLowerCase();
+      filtered = filtered.filter(faq => 
+        faq.question?.toLowerCase().includes(searchTerm) ||
+        faq.summaryForAI?.toLowerCase().includes(searchTerm) ||
+        faq.keywords?.some(keyword => keyword.toLowerCase().includes(searchTerm))
+      );
+    }
+
+    setFilteredFaqs(filtered);
+  }, [faqs, selectedCategory, searchQuery]);
 
   const handleSuggestQuestion = (questionText = '') => {
     setPrefillQuestion(questionText);
@@ -664,6 +700,7 @@ export default function HomePage() {
                 faqs={faqs}
                 onSuggestQuestion={handleSuggestQuestion}
                 theme="blue"
+                initialQuery={searchQuery}
               />
             </div>
 

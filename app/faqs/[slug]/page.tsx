@@ -739,18 +739,19 @@ export default function FaqPage({ params }: FaqPageProps) {
               <PortableText value={faq.answer} />
             </div>
 
-            {/* Keywords/Tags */}
+            {/* Keywords/Tags - Make them clickable */}
             {faq.keywords && faq.keywords.length > 0 && (
               <div className="mb-8">
                 <h3 className="text-sm font-medium text-slate-500 mb-2">Topics:</h3>
                 <div className="flex flex-wrap gap-2">
                   {faq.keywords.map((keyword, index) => (
-                    <span
+                    <Link
                       key={index}
-                      className="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm"
+                      href={`/?search=${encodeURIComponent(keyword)}`}
+                      className="inline-block bg-blue-100 text-blue-700 px-2 py-1 rounded text-sm hover:bg-blue-200 transition-colors cursor-pointer"
                     >
                       {keyword}
-                    </span>
+                    </Link>
                   ))}
                 </div>
               </div>
