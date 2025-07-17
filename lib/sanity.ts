@@ -29,25 +29,35 @@ export const urlFor = (source: any) => {
 
 // Helper function to get image URL with fallback
 export const getImageUrl = (image: any, width?: number, height?: number) => {
+  console.log('getImageUrl called with:', { image, width, height })
+  
   if (!image?.asset?.url) {
+    console.log('No image asset URL, using fallback')
     return '/fallback.jpg'
   }
   
   try {
     const imageBuilder = urlFor(image)
     if (!imageBuilder) {
+      console.log('urlFor returned null, using fallback')
       return '/fallback.jpg'
     }
     
+    let finalUrl
     if (width && height) {
-      return imageBuilder.width(width).height(height).fit('crop').url()
+      finalUrl = imageBuilder.width(width).height(height).fit('crop').url()
     } else if (width) {
-      return imageBuilder.width(width).url()
+      finalUrl = imageBuilder.width(width).url()
     } else {
-      return imageBuilder.url()
+      finalUrl = imageBuilder.url()
     }
+    
+    console.log('Generated image URL:', finalUrl)
+    return finalUrl
   } catch (error) {
     console.warn('Image URL generation error:', error)
-    return image.asset.url || '/fallback.jpg'
+    const fallbackUrl = image.asset.url || '/fallback.jpg'
+    console.log('Using fallback URL:', fallbackUrl)
+    return fallbackUrl
   }
 }
