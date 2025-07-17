@@ -700,7 +700,7 @@ export default function HomePage() {
                 onClick={() => setSelectedCategory('all')}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                   selectedCategory === 'all'
-                    ? 'bg-blue-500 text-white'
+                    ? 'bg-slate-600 text-white'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
