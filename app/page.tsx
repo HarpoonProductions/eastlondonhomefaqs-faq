@@ -5,6 +5,7 @@ import { groq } from 'next-sanity'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState, useEffect, useMemo } from 'react'
+import PWADownloadButton from '@/components/PWADownloadButton'
 
 // Type definitions
 interface FAQ {
@@ -711,15 +712,19 @@ export default function HomePage() {
               <div className="h-px bg-slate-300 flex-1 max-w-24"></div>
             </div>
             
-            <button
-              onClick={() => handleSuggestQuestion()}
-              className="mt-4 inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Suggest a Property Question
-            </button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-4">
+              <button
+                onClick={() => handleSuggestQuestion()}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Suggest a Property Question
+              </button>
+              
+              <PWADownloadButton />
+            </div>
             <p className="text-slate-500 text-sm mt-3">
               Can't find what you're looking for? Let us know!
             </p>
