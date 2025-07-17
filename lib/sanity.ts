@@ -16,24 +16,14 @@ const builder = imageUrlBuilder(client)
 
 export const urlFor = (source: any) => {
   if (!source || !source.asset) {
-    return {
-      url: () => '/fallback.jpg',
-      width: () => ({ url: () => '/fallback.jpg' }),
-      height: () => ({ url: () => '/fallback.jpg' }),
-      fit: () => ({ url: () => '/fallback.jpg' })
-    }
+    return null
   }
   
   try {
     return builder.image(source)
   } catch (error) {
     console.warn('Image URL builder error:', error)
-    return {
-      url: () => '/fallback.jpg',
-      width: () => ({ url: () => '/fallback.jpg' }),
-      height: () => ({ url: () => '/fallback.jpg' }),
-      fit: () => ({ url: () => '/fallback.jpg' })
-    }
+    return null
   }
 }
 
@@ -44,12 +34,17 @@ export const getImageUrl = (image: any, width?: number, height?: number) => {
   }
   
   try {
+    const imageBuilder = urlFor(image)
+    if (!imageBuilder) {
+      return '/fallback.jpg'
+    }
+    
     if (width && height) {
-      return urlFor(image).width(width).height(height).fit('crop').url()
+      return imageBuilder.width(width).height(height).fit('crop').url()
     } else if (width) {
-      return urlFor(image).width(width).url()
+      return imageBuilder.width(width).url()
     } else {
-      return urlFor(image).url()
+      return imageBuilder.url()
     }
   } catch (error) {
     console.warn('Image URL generation error:', error)
