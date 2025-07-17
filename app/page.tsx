@@ -731,9 +731,9 @@ export default function HomePage() {
         <div className="mx-auto px-4 sm:px-6 lg:px-8 pb-16" style={{ maxWidth: '1600px' }}>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
             {filteredFaqs.map((faq, index) => {
-              const imageUrl = faq.image?.asset?.url
-                ? urlFor(faq.image).width(500).height(300).fit('crop').url()
-                : '/fallback.jpg'
+           import { getImageUrl } from '@/lib/sanity'
+
+const imageUrl = getImageUrl(faq.image, 500, 300)
 
               return (
                 <article

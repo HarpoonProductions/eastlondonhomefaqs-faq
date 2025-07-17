@@ -1,14 +1,12 @@
 'use client'
 
-import { client } from '@/lib/sanity'
+import { client, getImageUrl } from '@/lib/sanity'
 import { groq } from 'next-sanity'
 import Image from 'next/image'
 import Link from 'next/link'
 import { PortableText } from '@portabletext/react'
 import { notFound } from 'next/navigation'
-import { urlFor } from '@/lib/sanity'
 import { useState, useEffect, useMemo } from 'react'
-import Script from 'next/script'
 
 interface Author {
   _id: string
@@ -28,9 +26,11 @@ interface Author {
 }
 
 interface Category {
+  _id: string
   title: string
   slug: { current: string }
   description?: string
+  color?: string
 }
 
 interface Faq {
@@ -68,9 +68,11 @@ const faqQuery = groq`*[_type == "faq" && slug.current == $slug][0] {
   alternateQuestions,
   keywords,
   category->{
+    _id,
     title,
     slug,
-    description
+    description,
+    color
   },
   relatedFAQs[]->{
     _id,
@@ -87,7 +89,8 @@ const faqQuery = groq`*[_type == "faq" && slug.current == $slug][0] {
     },
     category->{
       title,
-      slug
+      slug,
+      color
     }
   },
   publishedAt,
@@ -119,11 +122,18 @@ const faqQuery = groq`*[_type == "faq" && slug.current == $slug][0] {
   customSchemaMarkup
 }`
 
-const relatedQuery = groq`*[_type == "faq" && _id != $currentId && (category._ref == $categoryRef || count((keywords[])[@ in $keywords]) > 0)][0...3] {
+const relatedQuery = groq`*[_type == "faq" && _id != $currentId && (
+  category._ref == $categoryRef ||
+  count((keywords[])[@ in $keywords]) > 0
+)] | order(
+  (category._ref == $categoryRef => 3) +
+  (count((keywords[])[@ in $keywords]) * 2)
+) desc [0...6] {
   _id,
   question,
   slug,
   summaryForAI,
+  keywords,
   image {
     asset->{
       _id,
@@ -134,7 +144,8 @@ const relatedQuery = groq`*[_type == "faq" && _id != $currentId && (category._re
   },
   category->{
     title,
-    slug
+    slug,
+    color
   }
 }`
 
@@ -145,26 +156,6 @@ const searchFAQsQuery = groq`*[_type == "faq" && defined(slug.current) && define
   slug,
   summaryForAI
 }`
-
-// Universal image URL function
-const getImageUrl = (image: any, width?: number, height?: number, fallback = '/fallback.jpg') => { // eslint-disable-line @typescript-eslint/no-explicit-any
-  if (!image?.asset?.url) {
-    return fallback;
-  }
-
-  try {
-    if (width && height) {
-      return urlFor(image).width(width).height(height).fit('crop').url();
-    } else if (width) {
-      return urlFor(image).width(width).url();
-    } else {
-      return urlFor(image).url();
-    }
-  } catch (error) {
-    console.warn('urlFor failed, using raw URL:', error);
-    return image.asset.url;
-  }
-};
 
 // Search Component - Blue themed for East London
 interface SearchFAQ {
@@ -464,7 +455,7 @@ export default function FaqPage({ params }: FaqPageProps) {
 
   const fetchFaqData = async (faqSlug: string) => {
     try {
-      // Fetch FAQ and search FAQs only
+      // Fetch FAQ and search FAQs
       const [faqData, searchFAQsData] = await Promise.allSettled([
         client.fetch(faqQuery, { slug: faqSlug }),
         client.fetch(searchFAQsQuery)
@@ -475,24 +466,56 @@ export default function FaqPage({ params }: FaqPageProps) {
         return;
       }
       
-      setFaq(faqData.value);
+      const faqResult = faqData.value;
+      setFaq(faqResult);
       setSearchFAQs(searchFAQsData.status === 'fulfilled' ? searchFAQsData.value || [] : []);
       
-      // Fetch related FAQs if keywords/category exist
-      if (faqData.value.keywords?.length || faqData.value.category) {
-        const related: Faq[] = await client.fetch(relatedQuery, { 
-          currentId: faqData.value._id,
-          categoryRef: faqData.value.category?._id,
-          keywords: faqData.value.keywords || []
-        });
-        setRelatedFaqs(related);
+      // Enhanced related FAQ logic
+      let related: Faq[] = [];
+      
+      // If manual related FAQs are set, use those
+      if (faqResult.relatedFAQs?.length > 0) {
+        related = faqResult.relatedFAQs.slice(0, 3);
+      } else {
+        // Otherwise, use automatic related FAQ detection
+        try {
+          const autoRelated: Faq[] = await client.fetch(relatedQuery, { 
+            currentId: faqResult._id,
+            categoryRef: faqResult.category?._id,
+            keywords: faqResult.keywords || []
+          });
+          
+          related = autoRelated.slice(0, 3);
+        } catch (error) {
+          console.error('Error fetching related FAQs:', error);
+          related = [];
+        }
       }
       
+      setRelatedFaqs(related);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching FAQ:', error);
       setLoading(false);
     }
+  };
+
+  const getCategoryColor = (colorName?: string) => {
+    const colorMap: Record<string, string> = {
+      blue: 'bg-blue-100 text-blue-700 hover:bg-blue-200',
+      green: 'bg-green-100 text-green-700 hover:bg-green-200',
+      purple: 'bg-purple-100 text-purple-700 hover:bg-purple-200',
+      orange: 'bg-orange-100 text-orange-700 hover:bg-orange-200',
+      red: 'bg-red-100 text-red-700 hover:bg-red-200',
+      yellow: 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200',
+      teal: 'bg-teal-100 text-teal-700 hover:bg-teal-200',
+      pink: 'bg-pink-100 text-pink-700 hover:bg-pink-200',
+      indigo: 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200',
+      cyan: 'bg-cyan-100 text-cyan-700 hover:bg-cyan-200',
+      lime: 'bg-lime-100 text-lime-700 hover:bg-lime-200',
+      amber: 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+    };
+    return colorMap[colorName || 'blue'] || 'bg-blue-100 text-blue-700 hover:bg-blue-200';
   };
 
   if (loading) {
@@ -534,7 +557,7 @@ export default function FaqPage({ params }: FaqPageProps) {
               "@id": "https://eastlondonhomefaqs.com/#website",
               "url": "https://eastlondonhomefaqs.com",
               "name": "East London Home FAQs",
-              "description": "Your complete guide to buying, renting, and living in East London",
+              "description": "Questions and answers about buying, renting and living in East London",
               "publisher": {
                 "@type": "Organization",
                 "@id": "https://eastlondonhomefaqs.com/#organization",
@@ -568,7 +591,7 @@ export default function FaqPage({ params }: FaqPageProps) {
         }}
       />
 
-  {/* Header Section - Logo Version */}
+      {/* Header Section - Logo Version */}
       <div className="pt-16 pb-8 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto text-center" style={{ maxWidth: '1600px' }}>
           <Link href="/" className="inline-block">
@@ -631,12 +654,18 @@ export default function FaqPage({ params }: FaqPageProps) {
               
               {/* Question overlay */}
               <div className="absolute inset-0 p-8 md:p-12 flex flex-col justify-end">
-                <div className="mb-4">
-                  <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-medium">
-                    <div className="w-2 h-2 bg-white rounded-full"></div>
-                    Property Question
-                  </span>
-                </div>
+                {/* Category Badge */}
+                {faq.category && (
+                  <div className="mb-4">
+                    <Link
+                      href={`/?category=${faq.category.slug.current}`}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white text-sm font-medium hover:bg-white/30 transition-colors"
+                    >
+                      <div className="w-2 h-2 bg-white rounded-full"></div>
+                      {faq.category.title}
+                    </Link>
+                  </div>
+                )}
                 <h1 className="faq-question text-3xl md:text-5xl font-bold text-white leading-tight max-w-4xl">
                   {faq.question}
                 </h1>
@@ -646,15 +675,22 @@ export default function FaqPage({ params }: FaqPageProps) {
 
           {/* Content Section */}
           <div className="p-8 md:p-12">
-            {/* If no image, show question as heading */}
+            {/* If no image, show question as heading with category */}
             {!faq.image?.asset?.url && (
               <div className="mb-8">
-                <div className="mb-4">
-                  <span className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full text-slate-700 text-sm font-medium">
-                    <div className="w-2 h-2 bg-slate-500 rounded-full"></div>
-                    Property Question
-                  </span>
-                </div>
+                {faq.category && (
+                  <div className="mb-4">
+                    <Link
+                      href={`/?category=${faq.category.slug.current}`}
+                      className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${getCategoryColor(faq.category.color)}`}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                      </svg>
+                      {faq.category.title}
+                    </Link>
+                  </div>
+                )}
                 <h1 className="faq-question text-3xl md:text-4xl font-bold text-slate-800 leading-tight">
                   {faq.question}
                 </h1>
@@ -764,7 +800,7 @@ export default function FaqPage({ params }: FaqPageProps) {
                         <div className="mb-3">
                           <span className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white text-xs font-medium">
                             <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                            Related
+                            {related.category?.title || 'Related'}
                           </span>
                         </div>
                         <h4 className="text-lg font-bold text-white leading-tight group-hover:text-blue-200 transition-colors duration-300">
