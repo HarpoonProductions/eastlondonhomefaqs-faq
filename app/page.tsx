@@ -14,7 +14,11 @@ interface FAQ {
   slug: { current: string };
   summaryForAI?: string;
   keywords?: string[];
-  category?: { title: string };
+  category?: { 
+    title: string;
+    slug: { current: string };
+    color?: string;
+  };
   image?: {
     asset?: {
       url: string;
@@ -22,6 +26,14 @@ interface FAQ {
     alt?: string;
   };
   publishedAt?: string;
+}
+
+interface Category {
+  _id: string;
+  title: string;
+  slug: { current: string };
+  color?: string;
+  orderIndex?: number;
 }
 
 interface SearchBoxProps {
@@ -254,6 +266,8 @@ const SuggestQuestionModal = ({
 
   // Check rate limiting
   const checkRateLimit = () => {
+    if (typeof window === 'undefined') return null;
+    
     const lastSubmission = localStorage.getItem('lastQuestionSubmission');
     const now = Date.now();
     const oneDay = 24 * 60 * 60 * 1000;
@@ -308,7 +322,9 @@ Timestamp: ${new Date().toISOString()}
     window.location.href = `mailto:studio@harpoon.productions?subject=${subject}&body=${body}`;
     
     // Set rate limiting
-    localStorage.setItem('lastQuestionSubmission', Date.now().toString());
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lastQuestionSubmission', Date.now().toString());
+    }
     
     setIsSubmitting(false);
     setIsSubmitted(true);
@@ -459,20 +475,26 @@ Timestamp: ${new Date().toISOString()}
 
 export default function HomePage() {
   const [faqs, setFaqs] = useState<FAQ[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [filteredFaqs, setFilteredFaqs] = useState<FAQ[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [prefillQuestion, setPrefillQuestion] = useState('');
 
   useEffect(() => {
-    const fetchFaqs = async () => {
+    const fetchData = async () => {
       try {
-        const query = groq`*[_type == "faq" && defined(slug.current)] | order(publishedAt desc, _createdAt desc)[0...10] {
+        // Fetch FAQs
+        const faqQuery = groq`*[_type == "faq" && defined(slug.current)] | order(publishedAt desc, _createdAt desc)[0...10] {
           _id,
           question,
           slug,
           summaryForAI,
           keywords,
           category->{
-            title
+            title,
+            slug,
+            color
           },
           image {
             asset -> {
@@ -482,20 +504,63 @@ export default function HomePage() {
           },
           publishedAt
         }`;
+
+        // Fetch Categories
+        const categoryQuery = groq`*[_type == "category"] | order(orderIndex asc, title asc) {
+          _id,
+          title,
+          slug,
+          color,
+          orderIndex
+        }`;
         
-        const result = await client.fetch(query);
-        setFaqs(result);
+        const [faqResult, categoryResult] = await Promise.all([
+          client.fetch(faqQuery),
+          client.fetch(categoryQuery)
+        ]);
+
+        setFaqs(faqResult);
+        setCategories(categoryResult);
       } catch (error) {
         console.error('❌ Fetch error:', error);
       }
     };
 
-    fetchFaqs();
+    fetchData();
   }, []);
+
+  // Filter FAQs when category or faqs change
+  useEffect(() => {
+    if (selectedCategory === 'all') {
+      setFilteredFaqs(faqs);
+    } else {
+      setFilteredFaqs(faqs.filter(faq => 
+        faq.category?.slug?.current === selectedCategory
+      ));
+    }
+  }, [faqs, selectedCategory]);
 
   const handleSuggestQuestion = (questionText = '') => {
     setPrefillQuestion(questionText);
     setIsModalOpen(true);
+  };
+
+  const getCategoryColor = (colorName?: string) => {
+    const colorMap: Record<string, string> = {
+      blue: 'bg-blue-500',
+      green: 'bg-green-500',
+      purple: 'bg-purple-500',
+      orange: 'bg-orange-500',
+      red: 'bg-red-500',
+      yellow: 'bg-yellow-500',
+      teal: 'bg-teal-500',
+      pink: 'bg-pink-500',
+      indigo: 'bg-indigo-500',
+      cyan: 'bg-cyan-500',
+      lime: 'bg-lime-500',
+      amber: 'bg-amber-500'
+    };
+    return colorMap[colorName || 'blue'] || 'bg-blue-500';
   };
 
   return (
@@ -510,7 +575,7 @@ export default function HomePage() {
             "@id": "https://eastlondonhomefaqs.com/#website",
             "url": "https://eastlondonhomefaqs.com",
             "name": "East London Home FAQs",
-            "description": "Your trusted guide to East London property",
+            "description": "Questions and answers about buying, renting and living in East London",
             "inLanguage": "en-US",
             "publisher": {
               "@type": "Organization",
@@ -545,7 +610,7 @@ export default function HomePage() {
               "@type": "ImageObject",
               "url": "https://eastlondonhomefaqs.com/eastlondonhomefaqs.png"
             },
-            "description": "Your trusted guide to East London property",
+            "description": "Questions and answers about buying, renting and living in East London",
             "foundingDate": "2025",
             "sameAs": []
           })
@@ -596,7 +661,7 @@ export default function HomePage() {
               />
             </Link>
             <p className="text-slate-600 text-lg max-w-2xl mx-auto mb-8">
-              Your trusted guide to East London property
+              Questions and answers about buying, renting and living in East London
             </p>
             
             {/* Search Box */}
@@ -630,10 +695,42 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* Category Filter */}
+        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8" style={{ maxWidth: '1600px' }}>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {/* All Categories Button */}
+            <button
+              onClick={() => setSelectedCategory('all')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                selectedCategory === 'all'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              All Categories
+            </button>
+            
+            {/* Dynamic Category Buttons */}
+            {categories.map((category) => (
+              <button
+                key={category._id}
+                onClick={() => setSelectedCategory(category.slug.current)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  selectedCategory === category.slug.current
+                    ? `${getCategoryColor(category.color)} text-white`
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {category.title}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Articles Grid */}
         <div className="mx-auto px-4 sm:px-6 lg:px-8 pb-16" style={{ maxWidth: '1600px' }}>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-            {faqs.map((faq, index) => {
+            {filteredFaqs.map((faq, index) => {
               const imageUrl = faq.image?.asset?.url
                 ? urlFor(faq.image).width(500).height(300).fit('crop').url()
                 : '/fallback.jpg'
@@ -662,11 +759,11 @@ export default function HomePage() {
                       
                       {/* Text overlay */}
                       <div className="absolute inset-0 p-6 md:p-8 flex flex-col justify-end">
-                        {/* Timestamp */}
+                        {/* Category Badge */}
                         <div className="mb-3">
                           <span className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 backdrop-blur-sm rounded-full text-white text-xs font-medium">
                             <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                            Property Question
+                            {faq.category?.title || 'Property Question'}
                           </span>
                         </div>
                         
@@ -719,20 +816,30 @@ export default function HomePage() {
           </div>
 
           {/* Empty state */}
-          {faqs.length === 0 && (
+          {filteredFaqs.length === 0 && (
             <div className="text-center py-16">
               <div className="w-24 h-24 mx-auto mb-6 bg-blue-100 rounded-full flex items-center justify-center">
                 <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-slate-700 mb-2">No Property FAQs found</h3>
-              <p className="text-slate-500 mb-4">Check back later for new questions and answers about East London property!</p>
+              <h3 className="text-xl font-semibold text-slate-700 mb-2">
+                {selectedCategory === 'all' ? 'No Property FAQs found' : `No FAQs found in this category`}
+              </h3>
+              <p className="text-slate-500 mb-4">
+                {selectedCategory === 'all' 
+                  ? 'Check back later for new questions and answers about East London property!' 
+                  : 'Try selecting a different category or suggest a new question.'
+                }
+              </p>
               <button
                 onClick={() => handleSuggestQuestion()}
                 className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
               >
-                Be the first to suggest a property question →
+                {selectedCategory === 'all' 
+                  ? 'Be the first to suggest a property question →'
+                  : 'Suggest a question for this category →'
+                }
               </button>
             </div>
           )}
